@@ -191,17 +191,21 @@ export class StorageManager {
 			// Try to find existing notification to group with
 			const timeWindowMs = timeWindowSeconds * 1000;
 			const now = Date.now();
-			// Look for recent notification with exact same type and message.
+			// Notifications with a quantity are grouped by type alone (e.g. all GP
+			// gains collapse into one entry regardless of individual amounts).
+			// Message-only notifications (e.g. errors) still require an exact
+			// message match so unrelated errors are never merged.
+			const hasQuantity = notification.quantity !== undefined;
 			let existingIndex = -1;
 			for (let i = 0; i < this.notifications.length; i++) {
 				const n = this.notifications[i];
 				if (now - n.timestamp > timeWindowMs) {
 					break; // All remaining notifications are older, stop early
 				}
-				if (
-					n.type === notification.type &&
-					n.message === notification.message
-				) {
+				const typeMatches = n.type === notification.type;
+				const contentMatches =
+					hasQuantity || n.message === notification.message;
+				if (typeMatches && contentMatches) {
 					existingIndex = i;
 					break;
 				}
@@ -211,6 +215,11 @@ export class StorageManager {
 				const existing = this.notifications[existingIndex];
 				existing.count = (existing.count || 1) + 1;
 				existing.timestamp = now; // Update to latest timestamp
+				// Accumulate quantity so the grouped entry reflects the running total
+				if (hasQuantity) {
+					existing.quantity =
+						(existing.quantity || 0) + notification.quantity;
+				}
 				// Remove from current position
 				this.notifications.splice(existingIndex, 1);
 				// Put at beginning - it has the newest timestamp
