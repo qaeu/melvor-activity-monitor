@@ -191,14 +191,21 @@ export class StorageManager {
 			// Try to find existing notification to group with
 			const timeWindowMs = timeWindowSeconds * 1000;
 			const now = Date.now();
-			// Look for recent notification with exact same type and message
-			const existingIndex = this.notifications.findIndex((n) => {
-				return (
+			// Look for recent notification with exact same type and message.
+			let existingIndex = -1;
+			for (let i = 0; i < this.notifications.length; i++) {
+				const n = this.notifications[i];
+				if (now - n.timestamp > timeWindowMs) {
+					break; // All remaining notifications are older, stop early
+				}
+				if (
 					n.type === notification.type &&
-					n.message === notification.message &&
-					now - n.timestamp <= timeWindowMs
-				);
-			});
+					n.message === notification.message
+				) {
+					existingIndex = i;
+					break;
+				}
+			}
 			if (existingIndex !== -1) {
 				// Found matching notification - increment count instead of adding new
 				const existing = this.notifications[existingIndex];
