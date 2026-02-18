@@ -253,9 +253,15 @@ export class StorageManager {
 	}
 	/**
 	 * Get all notifications
+	 * Returns a frozen shallow copy of the internal array.
+	 * Callers can read freely but cannot push/splice/etc. on the array itself.
+	 * Individual notification objects are NOT frozen — deep-freezing each one
+	 * would require up to 500 Object.freeze() calls on every panel refresh
+	 * (~10×/second during active play), which is the allocation cost this
+	 * method is specifically designed to avoid.
 	 */
 	getNotifications() {
-		return this.notifications.map((n) => ({ ...n }));
+		return Object.freeze([...this.notifications]);
 	}
 	/**
 	 * Get notification by ID
