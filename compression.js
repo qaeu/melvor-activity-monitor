@@ -86,10 +86,17 @@ export class CompressionUtil {
 		}
 	}
 	/**
-	 * Convert Uint8Array to base64 string for storage
+	 * Convert Uint8Array to base64 string for storage.
+	 * Processes in 32KB chunks to avoid exceeding the JS engine's maximum
+	 * argument count limit when spreading large arrays into String.fromCharCode.
 	 */
 	static toBase64(data) {
-		return btoa(String.fromCharCode(...data));
+		let binary = '';
+		const chunkSize = 0x8000; // 32KB per chunk
+		for (let i = 0; i < data.length; i += chunkSize) {
+			binary += String.fromCharCode(...data.subarray(i, i + chunkSize));
+		}
+		return btoa(binary);
 	}
 	/**
 	 * Convert base64 string back to Uint8Array
