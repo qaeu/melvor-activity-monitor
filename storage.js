@@ -219,7 +219,7 @@ export class StorageManager {
 				if (hasQuantity) {
 					const newQuantity =
 						(existing.quantity || 0) + notification.quantity;
-					existing.quantity = newQuantity.toFixed(3);
+					existing.quantity = parseFloat(newQuantity.toFixed(3));
 				}
 				existing.message = notification.message;
 				// Remove from current position
