@@ -217,9 +217,11 @@ export class StorageManager {
 				existing.timestamp = now; // Update to latest timestamp
 				// Accumulate quantity so the grouped entry reflects the running total
 				if (hasQuantity) {
-					existing.quantity =
+					const newQuantity =
 						(existing.quantity || 0) + notification.quantity;
+					existing.quantity = newQuantity.toFixed(3);
 				}
+				existing.message = notification.message;
 				// Remove from current position
 				this.notifications.splice(existingIndex, 1);
 				// Put at beginning - it has the newest timestamp

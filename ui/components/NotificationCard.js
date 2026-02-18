@@ -67,7 +67,7 @@ function NotificationCard(props) {
 		if (notification.quantity >= 1000) {
 			return `${(notification.quantity / 1000).toFixed(1)}K`;
 		}
-		return notification.quantity.toString();
+		return notification.quantity.toFixed(3);
 	};
 	const quantity = formatQuantity();
 	const typeClass = getTypeClass();
@@ -96,7 +96,9 @@ function NotificationCard(props) {
 					<div class="card-meta">
 						<span class="card-type">${notification.type}</span>
 						${quantity ?
-							html`<span class="card-quantity">${quantity}</span>`
+							html`<span class="card-quantity"
+								>${quantity}${count > 1 ? ' total' : ''}</span
+							>`
 						:	''}
 						<span class="card-timestamp">${timestamp}</span>
 					</div>
