@@ -5,11 +5,19 @@
 export class StorageManager {
 	constructor(ctx, settings) {
 		this.notifications = [];
+		this._cachedNotifications = null;
 		this.saveDebounceTimer = null;
 		this.SAVE_DEBOUNCE_MS = 1000;
 		this.MAX_CHARACTER_SAVE_BYTES = 8192; // 8KB
 		this.ctx = ctx;
 		this.settings = settings;
+	}
+	/**
+	 * Invalidate the getNotifications() cache. Must be called by every method
+	 * that adds, removes, or mutates notification objects in this.notifications.
+	 */
+	_invalidateCache() {
+		this._cachedNotifications = null;
 	}
 	/**
 	 * Optimize notification for storage by removing redundant data
@@ -181,6 +189,7 @@ export class StorageManager {
 	 * Add notification to storage (with grouping)
 	 */
 	addNotification(notification) {
+		this._invalidateCache();
 		// Get grouping settings
 		const settingsManager = globalThis.ActivityMonitorMod?.settings;
 		const groupSimilar =
@@ -252,16 +261,23 @@ export class StorageManager {
 		this.debouncedSave();
 	}
 	/**
-	 * Get all notifications
-	 * Returns a frozen shallow copy of the internal array.
-	 * Callers can read freely but cannot push/splice/etc. on the array itself.
-	 * Individual notification objects are NOT frozen — deep-freezing each one
-	 * would require up to 500 Object.freeze() calls on every panel refresh
-	 * (~10×/second during active play), which is the allocation cost this
-	 * method is specifically designed to avoid.
+	 * Get all notifications.
+	 * Returns a cached deep clone of the internal array. The clone is rebuilt
+	 * lazily on the first read after any mutation, not on every call — so the
+	 * ~500 per-object spreads happen at write time rather than at read time.
+	 *
+	 * Write rate: XP ticks fire ~0.5×/s with up to ~5 notifications per tick,
+	 * giving a worst-case rebuild rate of ~2.5×/s. The panel debounce reads at
+	 * most ~10×/s, so reads hit the cache the vast majority of the time.
+	 * Callers receive isolated copies and cannot corrupt this.notifications.
 	 */
 	getNotifications() {
-		return Object.freeze([...this.notifications]);
+		if (this._cachedNotifications === null) {
+			this._cachedNotifications = this.notifications.map((n) => ({
+				...n,
+			}));
+		}
+		return this._cachedNotifications;
 	}
 	/**
 	 * Get notification by ID
@@ -273,6 +289,7 @@ export class StorageManager {
 	 * Update notification
 	 */
 	updateNotification(id, updates) {
+		this._invalidateCache();
 		const index = this.notifications.findIndex((n) => n.id === id);
 		if (index !== -1) {
 			this.notifications[index] = {
@@ -286,6 +303,7 @@ export class StorageManager {
 	 * Remove notification by ID
 	 */
 	removeNotification(id) {
+		this._invalidateCache();
 		this.notifications = this.notifications.filter((n) => n.id !== id);
 		this.debouncedSave();
 	}
@@ -293,6 +311,7 @@ export class StorageManager {
 	 * Clear all notifications
 	 */
 	clearAll() {
+		this._invalidateCache();
 		this.notifications = [];
 		this.save();
 	}
@@ -321,6 +340,10 @@ export class StorageManager {
 		} catch (error) {
 			logger.error('Failed to load notifications:', error);
 			this.notifications = [];
+		} finally {
+			// Ensure any pre-load cached snapshot is discarded regardless of
+			// which branch ran or whether an error occurred.
+			this._invalidateCache();
 		}
 	}
 	/**
