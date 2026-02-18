@@ -1,4 +1,44 @@
 /// <reference path="../types/melvor.d.ts" />
+
+// Maps notification type names to their corresponding capture settings property.
+const NOTIFICATION_TYPE_TO_SETTING = Object.freeze({
+	Error: 'captureErrors',
+	Success: 'captureSuccess',
+	Info: 'captureInfo',
+	AddItem: 'captureItemsAdded',
+	RemoveItem: 'captureItemsRemoved',
+	AddGP: 'captureGPAdded',
+	RemoveGP: 'captureGPRemoved',
+	AddSlayerCoins: 'captureSlayerCoinsAdded',
+	RemoveSlayerCoins: 'captureSlayerCoinsRemoved',
+	AddCurrency: 'captureCurrencyAdded',
+	RemoveCurrency: 'captureCurrencyRemoved',
+	SkillXP: 'captureSkillXP',
+	AbyssalXP: 'captureAbyssalXP',
+	MasteryLevel: 'captureMasteryLevel',
+	SummoningMark: 'captureSummoningMarks',
+});
+
+// Valid capture setting keys accepted from settings-change events.
+const VALID_CAPTURE_SETTING_KEYS = new Set([
+	'captureEnabled',
+	'captureErrors',
+	'captureSuccess',
+	'captureInfo',
+	'captureItemsAdded',
+	'captureItemsRemoved',
+	'captureGPAdded',
+	'captureGPRemoved',
+	'captureSlayerCoinsAdded',
+	'captureSlayerCoinsRemoved',
+	'captureCurrencyAdded',
+	'captureCurrencyRemoved',
+	'captureSkillXP',
+	'captureAbyssalXP',
+	'captureMasteryLevel',
+	'captureSummoningMarks',
+]);
+
 /**
  * Manages notification capture from the game
  */
@@ -23,28 +63,8 @@ export class NotificationCapture {
 			'activity-monitor-capture-setting-changed',
 			(event) => {
 				const { key, value } = event.detail;
-				// Map setting key to capture settings property
-				const settingMap = {
-					captureEnabled: 'captureEnabled',
-					captureErrors: 'captureErrors',
-					captureSuccess: 'captureSuccess',
-					captureInfo: 'captureInfo',
-					captureItemsAdded: 'captureItemsAdded',
-					captureItemsRemoved: 'captureItemsRemoved',
-					captureGPAdded: 'captureGPAdded',
-					captureGPRemoved: 'captureGPRemoved',
-					captureSlayerCoinsAdded: 'captureSlayerCoinsAdded',
-					captureSlayerCoinsRemoved: 'captureSlayerCoinsRemoved',
-					captureCurrencyAdded: 'captureCurrencyAdded',
-					captureCurrencyRemoved: 'captureCurrencyRemoved',
-					captureSkillXP: 'captureSkillXP',
-					captureAbyssalXP: 'captureAbyssalXP',
-					captureMasteryLevel: 'captureMasteryLevel',
-					captureSummoningMarks: 'captureSummoningMarks',
-				};
-				const settingKey = settingMap[key];
-				if (settingKey) {
-					this.updateSettings({ [settingKey]: value });
+				if (VALID_CAPTURE_SETTING_KEYS.has(key)) {
+					this.updateSettings({ [key]: value });
 					logger.debug(`Capture setting updated: ${key} = ${value}`);
 				}
 			},
@@ -285,25 +305,7 @@ export class NotificationCapture {
 		if (settingKey) {
 			return this.settings[settingKey];
 		}
-		// Map notification type to setting
-		const settingMap = {
-			Error: 'captureErrors',
-			Success: 'captureSuccess',
-			Info: 'captureInfo',
-			AddItem: 'captureItemsAdded',
-			RemoveItem: 'captureItemsRemoved',
-			AddGP: 'captureGPAdded',
-			RemoveGP: 'captureGPRemoved',
-			AddSlayerCoins: 'captureSlayerCoinsAdded',
-			RemoveSlayerCoins: 'captureSlayerCoinsRemoved',
-			AddCurrency: 'captureCurrencyAdded',
-			RemoveCurrency: 'captureCurrencyRemoved',
-			SkillXP: 'captureSkillXP',
-			AbyssalXP: 'captureAbyssalXP',
-			MasteryLevel: 'captureMasteryLevel',
-			SummoningMark: 'captureSummoningMarks',
-		};
-		const key = settingMap[type];
+		const key = NOTIFICATION_TYPE_TO_SETTING[type];
 		return this.settings[key];
 	}
 	/**
