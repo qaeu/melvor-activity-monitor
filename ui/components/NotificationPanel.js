@@ -15,13 +15,22 @@ function NotificationPanel() {
 		}
 	}, []);
 	// Listen for notification events (added, updated, refresh)
+	// Debounce rapid-fire events so multiple notifications arriving
+	// in the same tick only trigger a single re-render.
 	useEffect(() => {
+		let debounceTimer = null;
 		const refreshNotifications = () => {
-			const storage = globalThis.ActivityMonitorMod?.storage;
-			if (storage) {
-				const allNotifications = storage.getNotifications();
-				setNotifications(allNotifications);
+			if (debounceTimer !== null) {
+				clearTimeout(debounceTimer);
 			}
+			debounceTimer = setTimeout(() => {
+				debounceTimer = null;
+				const storage = globalThis.ActivityMonitorMod?.storage;
+				if (storage) {
+					const allNotifications = storage.getNotifications();
+					setNotifications(allNotifications);
+				}
+			}, 100);
 		};
 		// Listen for all notification events
 		document.addEventListener(
@@ -37,6 +46,9 @@ function NotificationPanel() {
 			refreshNotifications,
 		);
 		return () => {
+			if (debounceTimer !== null) {
+				clearTimeout(debounceTimer);
+			}
 			document.removeEventListener(
 				'activity-monitor-notification-added',
 				refreshNotifications,

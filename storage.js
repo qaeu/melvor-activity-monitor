@@ -237,7 +237,7 @@ export class StorageManager {
 	 * Get all notifications
 	 */
 	getNotifications() {
-		return [...this.notifications];
+		return this.notifications.map((n) => ({ ...n }));
 	}
 	/**
 	 * Get notification by ID
