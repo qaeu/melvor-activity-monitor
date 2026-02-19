@@ -230,7 +230,7 @@ export class NotificationCapture {
 				if (this.shouldCapture('SkillXP')) {
 					this.captureNotification({
 						type: 'SkillXP',
-						message: `+${xp.toFixed(3)} ${skill.name} XP`,
+						message: `+${parseFloat(xp.toFixed(3))} ${skill.name} XP`,
 						media: skill.media,
 						quantity: xp,
 						sourceObject: skill,
@@ -245,7 +245,7 @@ export class NotificationCapture {
 				if (this.shouldCapture('AbyssalXP')) {
 					this.captureNotification({
 						type: 'AbyssalXP',
-						message: `+${xp.toFixed(3)} ${skill.name} Abyssal XP`,
+						message: `+${parseFloat(xp.toFixed(3))} ${skill.name} Abyssal XP`,
 						media: skill.media,
 						quantity: xp,
 						sourceObject: skill,
