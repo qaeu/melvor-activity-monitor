@@ -71,6 +71,10 @@ const formatTimestamp = (timestamp) => {
 		return date.toLocaleString();
 	}
 };
+const toDisplayItem = (n) => ({
+	...n,
+	timestampStr: formatTimestamp(n.timestamp),
+});
 function NotificationPanel() {
 	const [notificationDisplayItems, setNotificationDisplayItems] = useState(
 		[],
@@ -83,49 +87,90 @@ function NotificationPanel() {
 		const storage = globalThis.ActivityMonitorMod?.storage;
 		if (storage) {
 			const all = storage.getNotifications();
-			setNotificationDisplayItems(
-				all.map((n) => ({
-					...n,
-					timestampStr: formatTimestamp(n.timestamp),
-				})),
-			);
+			setNotificationDisplayItems(all.map(toDisplayItem));
 		}
 	}, []);
 	// Listen for notification events (added, updated, refresh)
-	// Debounce rapid-fire events so multiple notifications arriving
-	// in the same tick only trigger a single re-render.
 	useEffect(() => {
+		// Collect same-tick events and flush them in one state update
+		// to avoid intermediate renders while the game tick is still dispatching.
 		let debounceTimer = null;
-		const refreshNotifications = () => {
-			if (debounceTimer !== null) {
-				clearTimeout(debounceTimer);
+		let pendingRefresh = false;
+		const pendingAdded = [];
+		const pendingUpdated = new Map();
+		const flushFromStorage = () => {
+			const storage = globalThis.ActivityMonitorMod?.storage;
+			if (storage) {
+				setNotificationDisplayItems(
+					storage.getNotifications().map(toDisplayItem),
+				);
 			}
+		};
+		const flushSurgical = () => {
+			const added = pendingAdded.splice(0);
+			const updatedMap = new Map(pendingUpdated);
+			pendingUpdated.clear();
+			setNotificationDisplayItems((prev) => {
+				if (added.length === 0 && updatedMap.size === 0) return prev;
+				// IDs being moved to front (new adds and grouped updates)
+				const frontIds = new Set([
+					...added.map((n) => n.id),
+					...updatedMap.keys(),
+				]);
+				// Remove those items from their current positions
+				const kept = prev.filter((n) => !frontIds.has(n.id));
+				// Build front: added items (using updated version if also grouped),
+				// then any updated items that weren't in added (existing, moved to front)
+				const addedIds = new Set(added.map((n) => n.id));
+				const newFront = [
+					...added.map((n) =>
+						toDisplayItem(updatedMap.get(n.id) ?? n),
+					),
+					...[...updatedMap.values()]
+						.filter((u) => !addedIds.has(u.id))
+						.map(toDisplayItem),
+				];
+				return [...newFront, ...kept];
+			});
+		};
+		const scheduleFlush = () => {
+			if (debounceTimer !== null) clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => {
 				debounceTimer = null;
-				const storage = globalThis.ActivityMonitorMod?.storage;
-				if (storage) {
-					const all = storage.getNotifications();
-					setNotificationDisplayItems(
-						all.map((n) => ({
-							...n,
-							timestampStr: formatTimestamp(n.timestamp),
-						})),
-					);
+				if (pendingRefresh) {
+					pendingRefresh = false;
+					pendingAdded.length = 0;
+					pendingUpdated.clear();
+					flushFromStorage();
+				} else {
+					flushSurgical();
 				}
 			}, 100);
 		};
-		// Listen for all notification events
+		const handleAdded = ({ detail: { notification } }) => {
+			pendingAdded.push(notification);
+			scheduleFlush();
+		};
+		const handleUpdated = ({ detail: { notification } }) => {
+			// Last update for a given id within the tick wins
+			pendingUpdated.set(notification.id, notification);
+			scheduleFlush();
+		};
+		const handleRefresh = () => {
+			pendingRefresh = true;
+			scheduleFlush();
+		};
 		document.addEventListener(
 			'activity-monitor-notification-added',
-			refreshNotifications,
+			handleAdded,
 		);
 		document.addEventListener(
 			'activity-monitor-notification-updated',
-			refreshNotifications,
+			handleUpdated,
 		);
 		document.addEventListener(
 			'activity-monitor-refresh-panel',
-			refreshNotifications,
+			handleRefresh,
 		);
 		return () => {
 			if (debounceTimer !== null) {
@@ -133,15 +178,15 @@ function NotificationPanel() {
 			}
 			document.removeEventListener(
 				'activity-monitor-notification-added',
-				refreshNotifications,
+				handleAdded,
 			);
 			document.removeEventListener(
 				'activity-monitor-notification-updated',
-				refreshNotifications,
+				handleUpdated,
 			);
 			document.removeEventListener(
 				'activity-monitor-refresh-panel',
-				refreshNotifications,
+				handleRefresh,
 			);
 		};
 	}, []);
