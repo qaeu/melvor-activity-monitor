@@ -67,7 +67,7 @@ function NotificationCard(props) {
 		if (notification.quantity >= 1000) {
 			return `${(notification.quantity / 1000).toFixed(1)}K`;
 		}
-		return notification.quantity.toFixed(3);
+		return parseFloat(notification.quantity.toFixed(3));
 	};
 	const quantity = formatQuantity();
 	const typeClass = getTypeClass();
