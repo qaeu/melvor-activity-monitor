@@ -200,8 +200,9 @@ export class StorageManager {
 			// Try to find existing notification to group with
 			const timeWindowMs = timeWindowSeconds * 1000;
 			const now = Date.now();
-			// Notifications with a quantity are grouped by type alone (e.g. all GP
-			// gains collapse into one entry regardless of individual amounts).
+			// Notifications with a quantity are grouped by type + mediaRef so
+			// that e.g. GP gains collapse into one entry but XP gains for
+			// different skills are kept separate (different mediaRef).
 			// Message-only notifications (e.g. errors) still require an exact
 			// message match so unrelated errors are never merged.
 			const hasQuantity = notification.quantity !== undefined;
@@ -213,7 +214,9 @@ export class StorageManager {
 				}
 				const typeMatches = n.type === notification.type;
 				const contentMatches =
-					hasQuantity || n.message === notification.message;
+					hasQuantity ?
+						n.mediaRef === notification.mediaRef
+					:	n.message === notification.message;
 				if (typeMatches && contentMatches) {
 					existingIndex = i;
 					break;
