@@ -106,6 +106,9 @@ export async function setup(ctx) {
 	// Load saved notifications when character loads
 	ctx.onCharacterLoaded(async () => {
 		try {
+			// Invalidate settings cache to ensure we read fresh values after character load
+			storage._invalidateSettingsCache();
+
 			await storage.load();
 			const stats = await storage.getStats();
 			logger.info(

@@ -281,9 +281,11 @@ export class SettingsManager {
 						option.textContent = opt.display;
 						select.appendChild(option);
 					});
-					// Set current value
-					const currentValue = this.getSetting(key) || defaultValue;
-					select.value = String(currentValue);
+					// Set current value - use section.get() directly to avoid circular lookup
+					const section = settingToSection.get(key);
+					const currentValue =
+						section ? section.get(key) : defaultValue;
+					select.value = String(currentValue ?? defaultValue);
 					// Handle change
 					select.addEventListener('change', () => {
 						const newValue =
@@ -309,9 +311,11 @@ export class SettingsManager {
 					numberInput.className = 'form-control';
 					numberInput.min = String(optionsOrConfig.min || 0);
 					numberInput.max = String(optionsOrConfig.max || 100);
-					// Set current value
-					const currentValue = this.getSetting(key) || defaultValue;
-					numberInput.value = String(currentValue);
+					// Set current value - use section.get() directly to avoid circular lookup
+					const section = settingToSection.get(key);
+					const currentValue =
+						section ? section.get(key) : defaultValue;
+					numberInput.value = String(currentValue ?? defaultValue);
 					// Handle change
 					numberInput.addEventListener('input', () => {
 						const newValue = Number(numberInput.value);
@@ -327,13 +331,24 @@ export class SettingsManager {
 					hintEl.textContent = hint;
 					container.appendChild(hintEl);
 				}
+
 				// Set initial visibility
-				const initialStorageMode = this.getSetting(
+				const storageModeSection = settingToSection.get(
 					SETTINGS_KEYS.STORAGE_MODE,
 				);
-				const initialCharacterSaveType = this.getSetting(
+				const characterSaveTypeSection = settingToSection.get(
 					SETTINGS_KEYS.CHARACTER_SAVE_TYPE,
 				);
+				const initialStorageMode =
+					storageModeSection ?
+						storageModeSection.get(SETTINGS_KEYS.STORAGE_MODE)
+					:	'local-storage';
+				const initialCharacterSaveType =
+					characterSaveTypeSection ?
+						characterSaveTypeSection.get(
+							SETTINGS_KEYS.CHARACTER_SAVE_TYPE,
+						)
+					:	'percentage';
 				container.style.display =
 					shouldShow(initialStorageMode, initialCharacterSaveType) ?
 						''
