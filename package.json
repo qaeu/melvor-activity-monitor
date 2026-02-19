@@ -1,0 +1,23 @@
+{
+	"name": "melvor-activity-monitor-fixed",
+	"description": "Monitors and tracks player activity in Melvor Idle",
+	"version": "0.2.1",
+	"main": "index.js",
+	"scripts": {
+		"pack": "webpack",
+		"zip": "node scripts/zip.js"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^18.11.13",
+		"archiver": "^4.0.2",
+		"del": "^7.0.0",
+		"copy-webpack-plugin": "^11.0.0",
+		"terser-webpack-plugin": "^5.3.16",
+		"uuid": "^9.0.0",
+		"webpack": "^5.74.0",
+		"webpack-cli": "^6.0.1"
+	}
+}
