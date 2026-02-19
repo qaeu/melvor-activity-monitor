@@ -1,8 +1,80 @@
 'use strict';
 /// <reference path="../../../types/melvor.d.ts" />
 /// <reference path="../globals.d.ts" />
+const getTimestampAge = (timestamp) => {
+	const diff = Date.now() - timestamp;
+	const seconds = Math.floor(diff / 1000);
+	const minutes = Math.floor(seconds / 60);
+	const hours = Math.floor(minutes / 60);
+	const days = Math.floor(hours / 24);
+	return { seconds, minutes, hours, days };
+};
+// Returns how many 1-second ticks must pass before this timestamp's
+// display string can possibly change. Used to skip redundant updates.
+const getTimestampUpdateCycle = (timestamp) => {
+	const { minutes, hours, days } = getTimestampAge(timestamp);
+	if (minutes < 1) return 1;
+	if (hours < 1) return 60;
+	if (days < 1) return 3600;
+	return 86400;
+};
+// Notifications are sorted newest-first so update cycles are non-decreasing.
+// The cycle values (1, 60, 3600, 86400) form a divisibility chain, so once
+// an item is not due, all subsequent (older) items are also not due.
+// Returns the number of leading items that are due for a refresh this tick.
+const countDueItems = (items, cycleCount) => {
+	let count = 0;
+	while (
+		count < items.length &&
+		cycleCount % getTimestampUpdateCycle(items[count].timestamp) === 0
+	) {
+		count++;
+	}
+	return count;
+};
+// Refreshes the timestampStr on the first `count` items.
+// Returns { next, changed } where changed is true if any string actually changed.
+const refreshDueItems = (items, count) => {
+	let changed = false;
+	const next = [];
+	for (let i = 0; i < count; i++) {
+		const newStr = formatTimestamp(items[i].timestamp);
+		if (newStr !== items[i].timestampStr) {
+			changed = true;
+			next.push({ ...items[i], timestampStr: newStr });
+		} else {
+			next.push(items[i]);
+		}
+	}
+	return { next, changed };
+};
+// Produces the next display-items state for one timer tick.
+// Returns prev unchanged (same reference) if nothing needed updating.
+const tickTimestamps = (prev, cycleCount) => {
+	const dueCount = countDueItems(prev, cycleCount);
+	if (dueCount === 0) return prev;
+	const { next, changed } = refreshDueItems(prev, dueCount);
+	if (!changed) return prev;
+	return [...next, ...prev.slice(dueCount)];
+};
+const formatTimestamp = (timestamp) => {
+	const settings = globalThis.ActivityMonitorMod?.settings;
+	const format = settings?.getSetting('timestampFormat') || 'relative';
+	if (format === 'relative') {
+		const { seconds, minutes, hours, days } = getTimestampAge(timestamp);
+		if (days > 0) return `${days}d ago`;
+		if (hours > 0) return `${hours}h ago`;
+		if (minutes > 0) return `${minutes}m ago`;
+		return seconds <= 3 ? 'just now' : `${seconds}s ago`;
+	} else {
+		const date = new Date(timestamp);
+		return date.toLocaleString();
+	}
+};
 function NotificationPanel() {
-	const [notifications, setNotifications] = useState([]);
+	const [notificationDisplayItems, setNotificationDisplayItems] = useState(
+		[],
+	);
 	const [filter, setFilter] = useState('all');
 	const [searchTerm, setSearchTerm] = useState('');
 	const [notificationTypes, setNotificationTypes] = useState([]);
@@ -10,8 +82,13 @@ function NotificationPanel() {
 	useEffect(() => {
 		const storage = globalThis.ActivityMonitorMod?.storage;
 		if (storage) {
-			const allNotifications = storage.getNotifications();
-			setNotifications(allNotifications);
+			const all = storage.getNotifications();
+			setNotificationDisplayItems(
+				all.map((n) => ({
+					...n,
+					timestampStr: formatTimestamp(n.timestamp),
+				})),
+			);
 		}
 	}, []);
 	// Listen for notification events (added, updated, refresh)
@@ -27,8 +104,13 @@ function NotificationPanel() {
 				debounceTimer = null;
 				const storage = globalThis.ActivityMonitorMod?.storage;
 				if (storage) {
-					const allNotifications = storage.getNotifications();
-					setNotifications(allNotifications);
+					const all = storage.getNotifications();
+					setNotificationDisplayItems(
+						all.map((n) => ({
+							...n,
+							timestampStr: formatTimestamp(n.timestamp),
+						})),
+					);
 				}
 			}, 100);
 		};
@@ -76,7 +158,7 @@ function NotificationPanel() {
 	// Update notification types only when they actually change
 	useEffect(() => {
 		const newTypes = Array.from(
-			new Set(notifications.map((n) => n.type)),
+			new Set(notificationDisplayItems.map((item) => item.type)),
 		).sort();
 		const typesChanged =
 			newTypes.length !== notificationTypes.length ||
@@ -84,15 +166,27 @@ function NotificationPanel() {
 		if (typesChanged) {
 			setNotificationTypes(newTypes);
 		}
-	}, [notifications]);
-	// Filter notifications (grouping now happens at storage time)
-	const filteredNotifications = notifications.filter((n) => {
+	}, [notificationDisplayItems]);
+	// Each tick refreshes only the newest items whose display string may have
+	// changed; older items are skipped entirely via early exit.
+	useEffect(() => {
+		let cycleCount = 0;
+		const timer = setInterval(() => {
+			cycleCount++;
+			setNotificationDisplayItems((prev) =>
+				tickTimestamps(prev, cycleCount),
+			);
+		}, 1000);
+		return () => clearInterval(timer);
+	}, []);
+	// Filter display items (grouping happens at storage time)
+	const filteredItems = notificationDisplayItems.filter((item) => {
 		// Filter by type
-		if (filter !== 'all' && n.type !== filter) return false;
+		if (filter !== 'all' && item.type !== filter) return false;
 		// Filter by search term
 		if (
 			searchTerm &&
-			!n.message.toLowerCase().includes(searchTerm.toLowerCase())
+			!item.message.toLowerCase().includes(searchTerm.toLowerCase())
 		) {
 			return false;
 		}
@@ -118,15 +212,15 @@ function NotificationPanel() {
 		if (storage) {
 			if (confirm('Are you sure you want to clear all notifications?')) {
 				storage.clearAll();
-				setNotifications([]);
+				setNotificationDisplayItems([]);
 			}
 		}
 	};
 	// Generate header title with counts
 	const headerTitle =
-		notifications.length === filteredNotifications.length ?
-			`Activity Monitor (${notifications.length})`
-		:	`Activity Monitor (${filteredNotifications.length}/${notifications.length})`;
+		notificationDisplayItems.length === filteredItems.length ?
+			`Activity Monitor (${notificationDisplayItems.length})`
+		:	`Activity Monitor (${filteredItems.length}/${notificationDisplayItems.length})`;
 	return html`
 		<div
 			class="activity-monitor-panel-overlay"
@@ -186,22 +280,27 @@ function NotificationPanel() {
 
 				<!-- Notification List -->
 				<div class="activity-monitor-list">
-					${filteredNotifications.length === 0 ?
+					${filteredItems.length === 0 ?
 						html`
 							<div class="activity-monitor-empty">
 								<i class="fa fa-inbox"></i>
 								<p>No notifications to display</p>
 							</div>
 						`
-					:	filteredNotifications.map((notification) => {
-							const key = notification.id;
-							return html`
+					:	filteredItems.map(
+							(item) => html`
 								<activity-monitor-card
-									key=${key}
-									.notification=${notification}
+									key=${item.id}
+									.id=${item.id}
+									.type=${item.type}
+									.quantity=${item.quantity}
+									.count=${item.count}
+									.media=${item.media}
+									.message=${item.message}
+									.timestampDisplay=${item.timestampStr}
 								></activity-monitor-card>
-							`;
-						})}
+							`,
+						)}
 				</div>
 			</div>
 		</div>

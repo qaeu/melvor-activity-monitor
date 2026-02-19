@@ -2,35 +2,23 @@
 /// <reference path="../../../types/melvor.d.ts" />
 /// <reference path="../globals.d.ts" />
 function NotificationCard(props) {
-	const { notification } = props;
-	if (!notification) {
+	const {
+		id,
+		type,
+		quantity: rawQuantity,
+		count: rawCount,
+		media,
+		message,
+		timestampDisplay,
+	} = props;
+	if (!id) {
 		return html``;
 	}
-	// Format timestamp
-	const formatTimestamp = (timestamp) => {
-		const settings = globalThis.ActivityMonitorMod?.settings;
-		const format = settings?.getSetting('timestampFormat') || 'relative';
-		if (format === 'relative') {
-			const now = Date.now();
-			const diff = now - timestamp;
-			const seconds = Math.floor(diff / 1000);
-			const minutes = Math.floor(seconds / 60);
-			const hours = Math.floor(minutes / 60);
-			const days = Math.floor(hours / 24);
-			if (days > 0) return `${days}d ago`;
-			if (hours > 0) return `${hours}h ago`;
-			if (minutes > 0) return `${minutes}m ago`;
-			return seconds <= 3 ? 'just now' : `${seconds}s ago`;
-		} else {
-			const date = new Date(timestamp);
-			return date.toLocaleString();
-		}
-	};
 	// Handle delete
 	const handleDelete = () => {
 		const storage = globalThis.ActivityMonitorMod?.storage;
 		if (!storage) return;
-		storage.removeNotification(notification.id);
+		storage.removeNotification(id);
 		// Dispatch refresh event
 		document.dispatchEvent(
 			new CustomEvent('activity-monitor-refresh-panel'),
@@ -38,49 +26,41 @@ function NotificationCard(props) {
 	};
 	// Get notification type class
 	const getTypeClass = () => {
-		const type = notification.type.toLowerCase();
-		if (type.includes('error')) return 'notification-error';
-		if (type.includes('success')) return 'notification-success';
-		if (type.includes('info')) return 'notification-info';
-		if (type.includes('item')) return 'notification-item';
-		if (type.includes('xp') || type.includes('level'))
-			return 'notification-xp';
-		if (
-			type.includes('currency') ||
-			type.includes('gp') ||
-			type.includes('coin')
-		)
+		const t = type.toLowerCase();
+		if (t.includes('error')) return 'notification-error';
+		if (t.includes('success')) return 'notification-success';
+		if (t.includes('info')) return 'notification-info';
+		if (t.includes('item')) return 'notification-item';
+		if (t.includes('xp') || t.includes('level')) return 'notification-xp';
+		if (t.includes('currency') || t.includes('gp') || t.includes('coin'))
 			return 'notification-currency';
 		return 'notification-default';
 	};
 	// Format quantity
 	const formatQuantity = () => {
-		if (
-			notification.quantity === undefined ||
-			notification.quantity === null
-		) {
+		if (rawQuantity === undefined || rawQuantity === null) {
 			return '';
 		}
-		if (notification.quantity >= 1000000) {
-			return `${(notification.quantity / 1000000).toFixed(1)}M`;
+		if (rawQuantity >= 1000000) {
+			return `${(rawQuantity / 1000000).toFixed(1)}M`;
 		}
-		if (notification.quantity >= 1000) {
-			return `${(notification.quantity / 1000).toFixed(1)}K`;
+		if (rawQuantity >= 1000) {
+			return `${(rawQuantity / 1000).toFixed(1)}K`;
 		}
-		return parseFloat(notification.quantity.toFixed(3));
+		return parseFloat(rawQuantity.toFixed(3));
 	};
 	const quantity = formatQuantity();
 	const typeClass = getTypeClass();
-	const timestamp = formatTimestamp(notification.timestamp);
-	const count = notification.count || 1;
+	const timestamp = timestampDisplay;
+	const count = rawCount || 1;
 	return html`
 		<div class="activity-monitor-card ${typeClass}">
 			<div class="card-content">
 				<!-- Icon -->
-				${notification.media ?
+				${media ?
 					html`
 						<div class="card-icon">
-							<img src="${notification.media}" alt="" />
+							<img src="${media}" alt="" />
 							${count > 1 ?
 								html`<span class="card-count-badge"
 									>×${count}</span
@@ -92,9 +72,9 @@ function NotificationCard(props) {
 
 				<!-- Content -->
 				<div class="card-body">
-					<div class="card-message">${notification.message}</div>
+					<div class="card-message">${message}</div>
 					<div class="card-meta">
-						<span class="card-type">${notification.type}</span>
+						<span class="card-type">${type}</span>
 						${quantity ?
 							html`<span class="card-quantity"
 								>${quantity}${count > 1 ? ' total' : ''}</span
