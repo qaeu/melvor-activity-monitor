@@ -113,17 +113,23 @@ export function closePanel() {
  * Setup notification listeners
  */
 function setupNotificationListeners() {
-	// Listen for new notifications to refresh panel if open
+	// Refresh the panel whenever a notification is added or updated, but only
+	// when the panel is visible (the panel's own internal listeners handle
+	// updates while it is hidden).
+	const dispatchRefreshIfVisible = () => {
+		if (uiState.panelVisible) {
+			document.dispatchEvent(
+				new CustomEvent('activity-monitor-refresh-panel'),
+			);
+		}
+	};
 	document.addEventListener(
 		'activity-monitor-notification-added',
-		(event) => {
-			// Dispatch event to update panel if it's open
-			if (uiState.panelVisible) {
-				document.dispatchEvent(
-					new CustomEvent('activity-monitor-refresh-panel'),
-				);
-			}
-		},
+		dispatchRefreshIfVisible,
+	);
+	document.addEventListener(
+		'activity-monitor-notification-updated',
+		dispatchRefreshIfVisible,
 	);
 }
 /**

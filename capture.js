@@ -228,12 +228,11 @@ export class NotificationCapture {
 		ctx.patch(NotificationsManager, 'createSkillXPNotification').after(
 			(result, skill, xp) => {
 				if (this.shouldCapture('SkillXP')) {
-					const roundedXP = xp.toFixed(3);
 					this.captureNotification({
 						type: 'SkillXP',
-						message: `+${roundedXP} ${skill.name} XP`,
+						message: `+${xp.toFixed(3)} ${skill.name} XP`,
 						media: skill.media,
-						quantity: roundedXP,
+						quantity: xp,
 						sourceObject: skill,
 						sourceType: 'skill',
 					});
@@ -244,12 +243,11 @@ export class NotificationCapture {
 		ctx.patch(NotificationsManager, 'createAbyssalXPNotification').after(
 			(result, skill, xp) => {
 				if (this.shouldCapture('AbyssalXP')) {
-					const roundedXP = xp.toFixed(3);
 					this.captureNotification({
 						type: 'AbyssalXP',
-						message: `+${roundedXP} ${skill.name} Abyssal XP`,
+						message: `+${xp.toFixed(3)} ${skill.name} Abyssal XP`,
 						media: skill.media,
-						quantity: roundedXP,
+						quantity: xp,
 						sourceObject: skill,
 						sourceType: 'skill',
 					});

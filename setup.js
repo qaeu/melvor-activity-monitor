@@ -122,6 +122,14 @@ export async function setup(ctx) {
 				`Storage stats - Compressed: ${(stats.compressedSize / 1024).toFixed(2)}KB, Ratio: ${stats.compressionRatio.toFixed(1)}%`,
 			);
 			logger.info(`Estimated max count: ${stats.estimatedMaxCount}`);
+			// Notify the panel so it refreshes with the loaded notifications.
+			// The panel is created by onInterfaceReady (which fires before
+			// onCharacterLoaded), so its initial render reads empty storage.
+			// Without this dispatch it would stay blank until the first
+			// in-session notification event arrives.
+			document.dispatchEvent(
+				new CustomEvent('activity-monitor-refresh-panel'),
+			);
 		} catch (error) {
 			logger.error('Failed to load notifications:', error);
 		}
