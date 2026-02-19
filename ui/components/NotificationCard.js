@@ -20,7 +20,7 @@ function NotificationCard(props) {
 			if (days > 0) return `${days}d ago`;
 			if (hours > 0) return `${hours}h ago`;
 			if (minutes > 0) return `${minutes}m ago`;
-			return `${seconds}s ago`;
+			return seconds <= 3 ? 'just now' : `${seconds}s ago`;
 		} else {
 			const date = new Date(timestamp);
 			return date.toLocaleString();
