@@ -89,16 +89,9 @@ export async function setup(ctx) {
 		captureMasteryLevel: allSettings.captureMasteryLevel,
 		captureSummoningMarks: allSettings.captureSummoningMarks,
 	};
-	const storageSettings = {
-		mode: allSettings.storageMode,
-		characterSaveType: allSettings.characterSaveType,
-		characterSavePercentage: allSettings.characterSavePercentage,
-		characterSaveLineCount: allSettings.characterSaveLineCount,
-		localStorageLineCount: allSettings.localStorageLineCount,
-	};
 	// Create instances
 	const capture = new captureModule.NotificationCapture(captureSettings);
-	const storage = new storageModule.StorageManager(ctx, storageSettings);
+	const storage = new storageModule.StorageManager(ctx);
 	logger.info('Module instances created');
 	// Setup settings listeners for real-time updates
 	capture.setupSettingsListeners();

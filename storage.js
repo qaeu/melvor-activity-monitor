@@ -5,12 +5,54 @@
 export class StorageManager {
 	constructor(ctx, settings) {
 		this.notifications = [];
-		this._cachedNotifications = null;
 		this.saveDebounceTimer = null;
 		this.SAVE_DEBOUNCE_MS = 1000;
 		this.MAX_CHARACTER_SAVE_BYTES = 8192; // 8KB
 		this.ctx = ctx;
-		this.settings = settings;
+		this._cachedNotifications = null;
+		this._cachedSettings = null;
+	}
+	/**
+	 * Get current storage settings.
+	 * Settings are cached and only updated when invalidated by setting changes.
+	 */
+	get settings() {
+		if (this._cachedSettings !== null) {
+			return this._cachedSettings;
+		}
+		const settingsManager = globalThis.ActivityMonitorMod?.settings;
+		if (!settingsManager) {
+			// Fallback to defaults if settings manager not available
+			this._cachedSettings = {
+				mode: 'local-storage',
+				characterSaveType: 'percentage',
+				characterSavePercentage: 20,
+				characterSaveLineCount: 50,
+				localStorageLineCount: 500,
+			};
+		} else {
+			this._cachedSettings = {
+				mode:
+					settingsManager.getSetting('storageMode') ||
+					'local-storage',
+				characterSaveType:
+					settingsManager.getSetting('characterSaveType') ||
+					'percentage',
+				characterSavePercentage:
+					settingsManager.getSetting('characterSavePercentage') || 20,
+				characterSaveLineCount:
+					settingsManager.getSetting('characterSaveLineCount') || 50,
+				localStorageLineCount:
+					settingsManager.getSetting('localStorageLineCount') || 500,
+			};
+		}
+		return this._cachedSettings;
+	}
+	/**
+	 * Invalidate settings cache to force fresh read on next access
+	 */
+	_invalidateSettingsCache() {
+		this._cachedSettings = null;
 	}
 	/**
 	 * Invalidate the getNotifications() cache. Must be called by every method
@@ -139,17 +181,21 @@ export class StorageManager {
 		}
 	}
 	/**
-	 * Update storage settings
+	 * Handle storage setting changes.
+	 * Invalidates cache and triggers save if mode changed.
 	 */
 	updateSettings(settings) {
 		const oldMode = this.settings.mode;
-		this.settings = { ...this.settings, ...settings };
-		// If mode changed, trigger immediate save to new backend
+		// Invalidate cache so next access reads fresh values
+		this._invalidateSettingsCache();
+		// Trigger save if mode changed
 		if (settings.mode && settings.mode !== oldMode) {
 			logger.info(`Storage mode changed: ${oldMode} → ${settings.mode}`);
 			this.save();
 		}
-		logger.debug('Storage settings updated:', this.settings);
+		logger.debug(
+			'Storage setting cache invalidated, will read fresh on next access',
+		);
 	}
 	/**
 	 * Setup event listeners for settings changes
@@ -164,23 +210,14 @@ export class StorageManager {
 				logger.info(`Storage mode changed to: ${mode}`);
 			},
 		);
-		// Listen for other storage setting changes
+		// Listen for storage setting changes (from conditional settings in UI)
 		document.addEventListener(
-			'activity-monitor-settings-changed',
+			'activity-monitor-storage-setting-changed',
 			(event) => {
 				const { key, value } = event.detail;
-				// Map setting key to storage settings property
-				const settingMap = {
-					characterSaveType: 'characterSaveType',
-					characterSavePercentage: 'characterSavePercentage',
-					characterSaveLineCount: 'characterSaveLineCount',
-					localStorageLineCount: 'localStorageLineCount',
-				};
-				const settingKey = settingMap[key];
-				if (settingKey) {
-					this.updateSettings({ [settingKey]: value });
-					logger.debug(`Storage setting updated: ${key} = ${value}`);
-				}
+				// Invalidate cache when any storage setting changes
+				this._invalidateSettingsCache();
+				logger.debug(`Storage setting changed: ${key} = ${value}`);
 			},
 		);
 		logger.info('Storage settings listeners registered');

@@ -14,13 +14,6 @@ export async function initializeUI(ctx) {
 	} catch (error) {
 		logger.error('Failed to load CSS:', error);
 	}
-	// Load StorageSettings component
-	try {
-		await ctx.loadModule('ui/components/StorageSettings.js');
-		logger.info('StorageSettings component loaded');
-	} catch (error) {
-		logger.error('Failed to load StorageSettings component:', error);
-	}
 	// Patch minibar to add icon
 	patchMinibar(ctx);
 	// Add proper sidebar integration
