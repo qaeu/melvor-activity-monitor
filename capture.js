@@ -263,7 +263,7 @@ export class NotificationCapture {
 						type: 'MasteryLevel',
 						message: `${action.name} Mastery Level ${level}`,
 						media: action.media,
-						quantity: level,
+						quantity: 1,
 						sourceObject: action,
 						sourceType: 'mastery',
 					});
