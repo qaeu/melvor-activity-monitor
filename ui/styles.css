@@ -213,6 +213,7 @@
 
 /* Card Content */
 .card-content {
+	position: relative;
 	padding: 0rem 0.75rem;
 	display: flex;
 	align-items: center;
@@ -221,7 +222,8 @@
 
 .card-icon {
 	flex-shrink: 0;
-	position: relative;
+	width: 28px;
+	height: 28px;
 }
 
 .card-icon img {
@@ -233,13 +235,13 @@
 
 .card-count-badge {
 	position: absolute;
-	bottom: -4px;
-	right: -4px;
-	background: #4a9eff8d;
+	top: -4px;
+	left: -6px;
+	background: #4a9eff8f;
 	color: #fff;
-	text-shadow: 0 1px #1a1a1a;
-	font-size: 0.64rem;
-	font-weight: 500;
+	text-shadow: 0 1px 1px #1a1a1a;
+	font-size: 0.6875rem;
+	font-weight: 400;
 	padding: 0.125rem 0.25rem;
 	border-radius: 3px;
 	border: 1px solid #1a1a1abb;
@@ -263,7 +265,7 @@
 .card-meta {
 	display: flex;
 	gap: 0.75rem;
-	font-size: 0.7rem;
+	font-size: 0.6875rem;
 	color: #888;
 }
 

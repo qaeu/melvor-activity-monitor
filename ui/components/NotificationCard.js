@@ -56,19 +56,14 @@ function NotificationCard(props) {
 	return html`
 		<div class="activity-monitor-card ${typeClass}">
 			<div class="card-content">
-				<!-- Icon -->
-				${media ?
-					html`
-						<div class="card-icon">
-							<img src="${media}" alt="" />
-							${count > 1 ?
-								html`<span class="card-count-badge"
-									>×${count}</span
-								>`
-							:	''}
-						</div>
-					`
+				<!-- Count Badge -->
+				${count > 1 ?
+					html`<span class="card-count-badge">×${count}</span>`
 				:	''}
+				<!-- Icon -->
+				<div class="card-icon">
+					${media ? html`<img src="${media}" alt="" />` : ''}
+				</div>
 
 				<!-- Content -->
 				<div class="card-body">
