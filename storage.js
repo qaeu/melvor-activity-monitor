@@ -546,11 +546,19 @@ export class StorageManager {
 		// memory-only mode doesn't need pruning
 	}
 	/**
-	 * Get localStorage key for current character
+	 * Get localStorage key for current character.
+	 * A stable per-character UUID is stored in characterStorage (which is
+	 * already scoped per character by the mod framework), so every character
+	 * gets its own localStorage bucket regardless of game mode.
 	 */
 	getLocalStorageKey() {
-		const characterName = game?.currentGamemode?.localID || 'default';
-		return `activity-monitor-notifications-${characterName}`;
+		let charKey = this.ctx.characterStorage.getItem('lsKey');
+		if (!charKey) {
+			// Generate a compact unique ID and persist it for this character.
+			charKey = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+			this.ctx.characterStorage.setItem('lsKey', charKey);
+		}
+		return `activity-monitor-notifications-${charKey}`;
 	}
 	/**
 	 * Prune to stay within percentage of max character save size
