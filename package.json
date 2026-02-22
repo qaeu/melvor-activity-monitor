@@ -1,7 +1,7 @@
 {
 	"name": "melvor-activity-monitor-fixed",
 	"description": "Monitors and tracks player activity in Melvor Idle",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"main": "index.js",
 	"scripts": {
 		"pack": "webpack",

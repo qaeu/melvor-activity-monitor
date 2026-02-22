@@ -1,7 +1,7 @@
 {
 	"namespace": "v_activity_monitor",
 	"name": "Activity Monitor (Fixed)",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"icon": "assets/icon.png",
 	"setup": "setup.js",
 	"description": "Monitors and tracks player activity in Melvor Idle"
