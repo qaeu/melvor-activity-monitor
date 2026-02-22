@@ -27,7 +27,6 @@ const SETTINGS_KEYS = {
 	CAPTURE_MASTERY_LEVEL: 'captureMasteryLevel',
 	CAPTURE_SUMMONING_MARKS: 'captureSummoningMarks',
 	// Display
-	GROUP_SIMILAR: 'groupSimilar',
 	GROUP_SIMILAR_TIME_WINDOW: 'groupSimilarTimeWindow',
 	TIMESTAMP_FORMAT: 'timestampFormat',
 };
@@ -124,7 +123,6 @@ export class SettingsManager {
 			captureSection,
 		);
 		// Display settings
-		settingToSection.set(SETTINGS_KEYS.GROUP_SIMILAR, displaySection);
 		settingToSection.set(
 			SETTINGS_KEYS.GROUP_SIMILAR_TIME_WINDOW,
 			displaySection,
@@ -559,38 +557,24 @@ export class SettingsManager {
 	 */
 	initializeDisplaySettings() {
 		displaySection.add({
-			type: 'switch',
-			name: SETTINGS_KEYS.GROUP_SIMILAR,
-			label: 'Group Similar Notifications',
-			hint: 'Combine similar notifications for cleaner display',
-			default: true,
-			onChange: (value) => {
-				logger.debug(`Group similar changed to: ${value}`);
-				document.dispatchEvent(
-					new CustomEvent(
-						'activity-monitor-display-setting-changed',
-						{
-							detail: { key: SETTINGS_KEYS.GROUP_SIMILAR, value },
-						},
-					),
-				);
-			},
-		});
-		displaySection.add({
 			type: 'dropdown',
 			name: SETTINGS_KEYS.GROUP_SIMILAR_TIME_WINDOW,
-			label: 'Group Time Window',
-			hint: 'Group notifications with exact same message within this time window',
-			default: 30,
+			label: 'Notification Grouping Time Window',
+			hint: 'Group similar notifications that occur within this time window',
+			default: 60,
 			options: [
+				{ value: 'never', display: 'Never' },
 				{ value: 10, display: '10 seconds' },
 				{ value: 30, display: '30 seconds' },
 				{ value: 60, display: '1 minute' },
 				{ value: 120, display: '2 minutes' },
 				{ value: 300, display: '5 minutes' },
+				{ value: 'always', display: 'Always' },
 			],
 			onChange: (value) => {
-				logger.debug(`Group time window changed to: ${value} seconds`);
+				logger.debug(
+					`Notification grouping time window changed to: ${value} seconds`,
+				);
 				document.dispatchEvent(
 					new CustomEvent(
 						'activity-monitor-display-setting-changed',
@@ -711,7 +695,6 @@ export class SettingsManager {
 				SETTINGS_KEYS.CAPTURE_SUMMONING_MARKS,
 			),
 			// Display
-			groupSimilar: this.getSetting(SETTINGS_KEYS.GROUP_SIMILAR),
 			groupSimilarTimeWindow: this.getSetting(
 				SETTINGS_KEYS.GROUP_SIMILAR_TIME_WINDOW,
 			),

@@ -229,11 +229,11 @@ export class StorageManager {
 		this._invalidateCache();
 		// Get grouping settings
 		const settingsManager = globalThis.ActivityMonitorMod?.settings;
-		const groupSimilar =
-			settingsManager?.getSetting('groupSimilar') ?? true;
-		const timeWindowSeconds =
+		const groupingWindow =
 			settingsManager?.getSetting('groupSimilarTimeWindow') ?? 30;
-		if (groupSimilar) {
+		const timeWindowSeconds =
+			groupingWindow === 'always' ? Infinity : Number(groupingWindow);
+		if (groupingWindow !== 'never') {
 			// Try to find existing notification to group with
 			const timeWindowMs = timeWindowSeconds * 1000;
 			const now = Date.now();
